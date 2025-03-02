@@ -1,0 +1,65 @@
+*Importing dataset;
+
+%web_drop_table(WORK.IMPORT);
+
+
+FILENAME REFFILE '/home/u42988937/vgsales.csv';
+
+PROC IMPORT DATAFILE=REFFILE
+	DBMS=CSV
+	OUT=VGSALES;
+	GETNAMES=YES;
+RUN;
+
+PROC CONTENTS DATA=VGSALES; RUN;
+
+
+%web_open_table(VGSALES);
+
+
+*ANOVA test to determine difference in genre compared to total sales;
+
+proc anova data=vgsales;
+	class Genre;
+	model Global_Sales = Genre;
+	Means Genre / tukey;
+	Run;
+
+
+*Line graph of sales data by year for each region
+
+proc sql;
+create table Yearly as
+select year, sum(EU_sales) as EUtotal, sum(NA_Sales) as NAtotal, sum(JP_Sales) as JPtotal
+from VGSALES
+group by year;
+
+proc sgplot data= yearly;
+	series x=year y= NAtotal;
+	series x=year y= EUtotal;
+	series x=year y= JPtotal;
+Run;
+
+
+*Creating a bar graph to show popularity by genre in North America;
+
+proc sql;
+create table NAGenre as
+select Genre, NA_Sales as NAtotal
+from VGSALES
+group by Genre;
+
+proc sgplot data=NAGenre;
+vbar Genre;
+Run;
+
+
+proc sql;
+create table JPGenre as
+select Genre, JP_Sales as JPtotal
+from VGSALES
+group by Genre;
+
+proc sgplot data=JPGenre;
+vbar Genre;
+run;
